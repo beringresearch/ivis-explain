@@ -1,1 +1,1 @@
-from .explainers import LinearExplainer
+from .explainers.linear import LinearExplainer
