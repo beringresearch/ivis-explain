@@ -28,6 +28,7 @@ setup(
     include_package_data=True,
     author='Bering Limited',
     install_requires=[
+        'lapjv',
         'scikit-learn>=0.20.0',
         'ivis>=1.1.4'
     ],
