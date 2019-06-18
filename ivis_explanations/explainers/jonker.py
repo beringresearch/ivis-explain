@@ -2,7 +2,6 @@ import lapjv
 import numpy as np
 
 from scipy.spatial.distance import cdist
-from sklearn.utils import shuffle
 
 
 class JVExplainer(object):
@@ -10,24 +9,27 @@ class JVExplainer(object):
     def __init__(self, model,
                  random_state=None):
         self.model = model
+        self.random_state = random_state
 
     def feature_importances_(self, X):
-        if X.shape[0] > 10000:
-            X = shuffle(X, random_state=self.random_state,
-                        n_samples=10000)
-
         if X.shape[1] > 2:
             embeddings = self.model.transform(X)
         else:
             embeddings = X
 
-        grid = np.stack((np.linspace(0, 1, embeddings.shape[0]),
-                         np.linspace(0, 1, embeddings.shape[0])), axis=1)
+        embeddings -= embeddings.min(axis=0)
+        embeddings /= embeddings.max(axis=0)
 
-        cost_matrix = cdist(grid, embeddings, "sqeuclidean").astype(np.float32)
-        cost_matrix = cost_matrix * (embeddings.shape[0] / cost_matrix.max())
+        dim = np.round(np.sqrt(embeddings.shape[0]))
+        xv, yv = np.meshgrid(np.linspace(0, 1, dim),
+                             np.linspace(0, 1, dim))
 
-        row_asses, col_asses, _ = lapjv.lapjv(cost_matrix)
+        grid = np.dstack((xv, yv)).reshape(-1, 2)
 
-        grid_jv = grid[col_asses]
+        cost_matrix = cdist(grid, embeddings, "sqeuclidean").astype(int)
+        cost_matrix = cost_matrix * (10000000. / cost_matrix.max())
+
+        row_index, col_index, _ = lapjv.lapjv(cost_matrix)
+
+        grid_jv = grid[col_index]
         return grid_jv
